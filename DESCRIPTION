@@ -1,0 +1,7 @@
+<language en>
+<h1>XBee Thermostat</h1>
+
+<p>An Arduino and XBee-powered thermostat that tracks <em>temperature</em> and <em>humidity</em> and switches a relay in response to either changes in temperature and/or humidity or remote commands received via XBee radio.</p>
+
+<p style="font-style:italic">Designed by <a href="mailto:george@sudarkoff.com">george@sudarkoff.com</a></p>
+</language en>
