@@ -2,19 +2,27 @@
 Continuously read the serial port and process IO data received from a remote XBee.
 """
 
-from xbee import ZigBee
+import time
 import serial
+from xbee import ZigBee
 
-ser = serial.Serial('/dev/tty.usbserial-A40081sf', 9600)
+serial_port = serial.Serial('/dev/tty.usbserial-A40081sf', 9600)
 
-xbee = ZigBee(ser)
+def print_data(data):
+    """
+    This method is called whenever data is received from the associated
+    XBee device. Its first and 3 only argument is the data contained within
+    the frame.
+    """
+    print data
 
-# Continuously read and print packets
+xbee = ZigBee(serial_port, callback=print_data, escaped=True)
+
 while True:
     try:
-        response = xbee.wait_read_frame()
-        print response
+        time.sleep(0.001)
     except KeyboardInterrupt:
         break
 
-ser.close()
+xbee.halt()
+serial_port.close()

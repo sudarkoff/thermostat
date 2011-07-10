@@ -33,7 +33,7 @@ float readThreshold(int addr, float minimumValue, float maximumValue, float defa
   return value;
 }
 
-void saveThreshold(int addr, float value)
+void writeThreshold(int addr, float value)
 {
   EEPROM_write(addr, value);
 }

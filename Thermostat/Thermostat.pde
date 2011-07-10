@@ -22,13 +22,12 @@ int statusLed = 13;                 // status LED, digital pin
 double currentTemperature = 0.0;    // last temperature measurement
 double currentHumidity = 0.0;       // last humidity measurement (NB! always measure temperature first)
 boolean relayState = false;         // true = relay ON, false = OFF
-long updateFrequency = 30 * 1000;   // take measurements every N seconds
-double lastUpdate;                  // last time the measurements were taken
+long updateFrequency = 20 * 1000;   // take measurements every 20 seconds
+double lastUpdate = 0.0;            // last time the measurements were taken
 
+uint8_t payload[] = { 0, 0 };
 XBee xbee = XBee();
-//XBeeAddress64 addr64 = XBeeAddress64(0x0013a200, 0x406fc230);
-XBeeAddress64 addr64 = XBeeAddress64(0x0, 0x0); // broadcast the measurements
-uint8_t payload[] = { 0, 0, 0 };
+XBeeAddress64 addr64 = XBeeAddress64(0x0, 0xffff); // broadcast the measurements
 ZBTxRequest zbTx = ZBTxRequest(addr64, payload, sizeof(payload));
 ZBTxStatusResponse txStatus = ZBTxStatusResponse();
 
@@ -77,7 +76,7 @@ boolean switchRelay(boolean state) {
 void sendMeasurements() {
   payload[0] = (uint8_t)floor(currentTemperature + 0.5);
   payload[1] = (uint8_t)floor(currentHumidity + 0.5);
-  payload[2] = (uint8_t)(relayState == true)? 1: 0;
+  //payload[2] = (uint8_t)(relayState==true?1:0);
   xbee.send(zbTx);
 
   // after sending a tx request, we expect a status response
@@ -108,12 +107,13 @@ void setup()
   pinMode(statusLed, OUTPUT);
   pinMode(relay, OUTPUT);
 
+  //writeThreshold(temperatureThresholdAddr, 35.0);
+  //writeThreshold(humidityThresholdAddr, 85.0);
+  
   temperatureThreshold = readThreshold(temperatureThresholdAddr, 20.0, 60.0, 35.0);
   humidityThreshold = readThreshold(humidityThresholdAddr, 30.0, 100.0, 85.0);
 
   xbee.begin(9600);
-
-  lastUpdate = -updateFrequency; // trigger new update immediately
 }
 
 // MAIN LOOP

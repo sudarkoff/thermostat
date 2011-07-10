@@ -108,8 +108,8 @@ void draw() {
     float temperatureCelsius = data.temperature;
     print(" temp: " + round(temperatureCelsius) + "˚C");
     float humidityRH = data.humidity;
-    println(" RH: " + round(humidityRH) + "%");
-    println(" relay: " + (data.relayStatus != 0?"ON":"OFF"));
+    print(", RH: " + round(humidityRH) + "%");
+    println(", relay: " + (data.relayStatus != 0?"ON":"OFF"));
 
     // update the thermometer if it exists, otherwise create a new one
     if (!foundIt) {
@@ -291,7 +291,7 @@ SensorData getData() {
       // get the values
       data.temperature = rxResponse.getData()[0];
       data.humidity = rxResponse.getData()[1];
-      data.relayStatus = rxResponse.getData()[2];
+      //data.relayStatus = rxResponse.getData()[2];
     }
     else if (!response.isError()) {
       println("Got error in data frame");

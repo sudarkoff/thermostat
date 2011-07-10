@@ -1,0 +1,6 @@
+Configuring XBee radios
+-----------------------
+
+Set PAN ID to ABBA42
+Set DH to 0x0
+Set DL to 0xffff (for broadcast)
