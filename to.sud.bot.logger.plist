@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key> <string>to.sud.bot.logger</string>
+	<key>KeepAlive</key> <true/>
+	<key>RunAtLoad</key> <true/>
+	<key>LowPriorityIO</key> <true/>
+	<key>ProgramArguments</key>
+	<array>
+		<string>/usr/local/bin/LoggerSudarbot.py</string>
+	</array>
+	<key>UserName</key> <string>root</string>
+</dict>
+</plist>
