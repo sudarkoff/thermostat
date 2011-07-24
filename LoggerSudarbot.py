@@ -188,6 +188,7 @@ class Logger:
 if __name__ == "__main__":
     log_level = logging.DEBUG
     logging.basicConfig(level=log_level,
+        filename='/var/log/sudarbot.log',
         format='%(asctime)s %(levelname)-8s %(message)s',
         datefmt='%a, %d %b %Y %H:%M:%S')
 

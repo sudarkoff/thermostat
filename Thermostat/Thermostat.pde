@@ -16,7 +16,7 @@ float humidityThreshold;            // humidity threshold (RH%)
 
 int humiditySensor = 0;             // humidity sensor, analog pin
 int temperatureSensor = 1;          // temperoture sensor, analog pin
-int relay = 3;                      // relay, digital pin
+int relay = 4;                      // relay, digital pin
 int statusLed = 13;                 // status LED, digital pin
 
 double currentTemperature = 0.0;    // last temperature measurement
