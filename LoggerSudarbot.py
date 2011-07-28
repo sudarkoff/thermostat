@@ -2,7 +2,8 @@
 # -*- coding: utf-8 -*-
 
 """
-Continuously read the serial port and process IO data received from a remote XBee.
+Continuously read the serial port, process IO data received from a remote XBee
+and post it to http://bot.sud.to/.
 """
 
 import sys
@@ -19,19 +20,22 @@ import mimetypes
 import simplejson
 import logging
 
-VERSION = "1.0"
+VERSION = "1.1"
+
 retries = 3
 retry_in_seconds = 1
+
+# TODO: Make it possible to override these from command line
 server_uri = 'bot.sud.to'
 server_port = '80'
-#server_uri = 'hermes.local'
-#server_port = '8080'
-attic1fan_temperature_name = 'attic1fan_temperature'
-attic1fan_humidity_name = 'attic1fan_humidity'
-attic1fan_fan_name = 'attic1fan_fan'
+
+# TODO: Receive these from the sensor
+temperature_name = 'temperature'
+humidity_name = 'humidity'
+fan_name = 'fan'
 
 
-class APIError(Exception):
+class LoggerError(Exception):
     pass
 
 class ServerInfo(object):
@@ -90,7 +94,7 @@ class SudarbotServer(object):
                 retry_in_seconds = retry_in_seconds + 1
 
         if not success:
-            raise APIError, "%s %s failed." % (method, path)
+            raise LoggerError, "%s %s failed." % (method, path)
 
         response = conn.getresponse()
         # conn.close()
@@ -98,7 +102,7 @@ class SudarbotServer(object):
 
         if response.status != 200:
             logging.error("Unable to %s %s (%s %s)." % (method, path, response.status, response.reason))
-            raise APIError, response.reason
+            raise LoggerError, response.reason
 
         if method in ['GET', 'POST', 'PUT']:
             data = response.read()
@@ -146,43 +150,38 @@ class Logger:
         self.server = SudarbotServer(server_info)
         atexit.register(self.terminate)
 
-        # TODO: Check that the datastream(s) exist instead of re-creating them
-        # all the time (which updates their last_medified timestamp)
-        # logging.info("Creating/updating attic1 fan datastreams.")
-        # try:
-        #     self.server.request('PUT', '/datastream/%s' % attic1fan_temperature_name)
-        #     self.server.request('PUT', '/datastream/%s' % attic1fan_humidity_name)
-        #     self.server.request('PUT', '/datastream/%s' % attic1fan_fan_name)
-        # except Exception, msg:
-        #     logging.error("Failed to create/update datastreams: %s" % msg)
-
     def post_data(self, data):
         logging.info("Data received from the thermostat.")
+        sensor_name = 'attic1'
+
+        # TODO: Check that the datastreams exist
+        # logging.info("Creating datastreams.")
+        # self.server.request('PUT', '/datastream/%s_%s' % (sensor_name, temperature_name))
+        # self.server.request('PUT', '/datastream/%s_%s' % (sensor_name, humidity_name))
+        # self.server.request('PUT', '/datastream/%s_%s' % (sensor_name, fan_name))
+
+        # TODO: Need to come up with a more abstract protocol
         temperature = ord(data['rf_data'][0])
         humidity = ord(data['rf_data'][1])
         fan = False
-        logging.info(u"T:%sC, RH:%s%%RH, Fan:%s" % (temperature, humidity, fan))
-        self.server.request('POST', '/datastream/%s' % attic1fan_temperature_name, {'value':"%s" % temperature})
-        self.server.request('POST', '/datastream/%s' % attic1fan_humidity_name, {'value':"%s" % humidity})
-        self.server.request('POST', '/datastream/%s' % attic1fan_fan_name, {'value':"%s" % fan})
+        logging.info(u"%s -- T:%sC, RH:%s%%RH, Fan:%s" % (sensor_name, temperature, humidity, fan))
+        self.server.request('POST', '/datastream/%s_%s' % (sensor_name, temperature_name), {'value':"%s" % temperature})
+        self.server.request('POST', '/datastream/%s_%s' % (sensor_name, humidity_name), {'value':"%s" % humidity})
+        self.server.request('POST', '/datastream/%s_%s' % (sensor_name, fan_name), {'value':"%s" % fan})
 
     def run(self):
-        try:
-            logging.info("Initializing serial port '%s'." % self.serport)
-            self.serial_port = serial.Serial(self.serport, 9600)
-            logging.info("Initializing ZigBee radio.")
-            self.xbee = ZigBee(self.serial_port, callback=self.post_data, escaped=True)
-        except Exception, msg:
-            logging.error("Failed to initialize ZigBee radio: %s" % msg)
+        logging.info("Initializing serial port '%s'." % self.serport)
+        self.serial_port = serial.Serial(self.serport, 9600)
+        logging.info("Initializing ZigBee radio.")
+        self.xbee = ZigBee(self.serial_port, callback=self.post_data, escaped=True)
 
         while True:
             time.sleep(0.01)
 
     def terminate(self):
         logging.info("Terminating the script.")
-        # self.xbee.halt()
-        # self.serial_port.close()
-        sys.exit(0)
+        self.xbee.halt()
+        self.serial_port.close()
 
 
 if __name__ == "__main__":
@@ -192,9 +191,11 @@ if __name__ == "__main__":
         format='%(asctime)s %(levelname)-8s %(message)s',
         datefmt='%a, %d %b %Y %H:%M:%S')
 
+    # TODO: Make serport a command-line parameter
     logger = Logger(serport='/dev/tty.usbserial-A40081sf')
     try:
         logger.run()
     except Exception, msg:
         logger.error("ERROR: %s" % msg)
         logger.terminate()
+        sys.exit(-1)
