@@ -1,5 +1,5 @@
 /**
- * XBeeThermostat v1.0
+ * XBeeThermostat
  * Author: George Sudarkoff <g@sud.to>
  */
 
@@ -9,25 +9,35 @@
 
 #include <hardwin.h>
 
-#define DEBUG
+//#define DEBUG
+#define NO_XBEE
 #define T_SENSOR
 //#define RH_SENSOR
+
+#define VERSION "v1.1"
 
 int temperatureThresholdAddr = 0;   // EEPROM address of the temperature threshold parameter
 float temperatureThreshold;         // temperature threshold (Celsius)
 int humidityThresholdAddr = 4;      // EEPROM address of the humidity threshold parameter
 float humidityThreshold;            // humidity threshold (RH%)
+int thermostatHysteresisAddr = 8;   // EEPROM address of the thermostat hysteresis
+float thermostatHysteresis = 3.0;   // thermostat hysteresis
 
-int humiditySensor = 0;             // humidity sensor, analog pin
-int temperatureSensor = 1;          // temperoture sensor, analog pin
+int temperatureSensor = 0;          // temperoture sensor, analog pin
+int humiditySensor = 1;             // humidity sensor, analog pin
 int relay = 4;                      // relay, digital pin
 int statusLed = 13;                 // status LED, digital pin
 
 double currentTemperature = 0.0;    // last temperature measurement
 double currentHumidity = 0.0;       // last humidity measurement (NB! always measure temperature first)
 boolean relayState = false;         // true = relay ON, false = OFF
-long updateFrequency = 20 * 1000;   // take measurements every 20 seconds
+
 double lastUpdate = 0.0;            // last time the measurements were taken
+#ifndef DEBUG
+long updateFrequency = 2 * 60000;   // take measurements every 2 minutes
+#else
+long updateFrequency = 10000;       // take measurements every 10 seconds
+#endif
 
 uint8_t payload[] = { 0, 0 };
 XBee xbee = XBee();
@@ -38,11 +48,18 @@ ZBTxStatusResponse txStatus = ZBTxStatusResponse();
 // Read temperature sensor a number of times, average the readings and convert to Celsius
 // NB! ALWAYS read temperature first, we use it to adjust humidity for better accuracy
 double readTemperature(int samples, int wait) {
-#if defined(T_SENSOR)
+#ifdef T_SENSOR
+  double sensor = 0.0;
   double val = 0.0;
   double T = 0.0;
   for (int i = 0; i < samples; i++) {
-    val = (5.0 * analogRead(temperatureSensor) * 100.0) / 1024.0;
+    sensor = analogRead(temperatureSensor);
+    val = (5.0 * sensor * 100.0) / 1024.0;
+#ifdef NO_XBEE
+    Serial.print(i);
+    Serial.print(" -- sensor reading: "); Serial.print(sensor);
+    Serial.print(", T value: "); Serial.println(val);
+#endif
     T += val;
     delay(wait);
   }
@@ -57,7 +74,7 @@ double readTemperature(int samples, int wait) {
 // Read humidity sensor a number of times, average the readings and convert to RH%
 // NB! ALWAYS read temperature first, we use it to adjust humidity for better accuracy
 double readHumidity(int samples, int wait) {
-#if defined(RH_SENSOR)
+#ifdef RH_SENSOR
   double val = 0.0;
   double RH = 0.0;
   for (int i = 0; i < samples; i++) {
@@ -86,10 +103,10 @@ boolean switchRelay(boolean state) {
 }
 
 void sendMeasurements() {
-#ifndef DEBUG
+#ifndef NO_XBEE
   payload[0] = (uint8_t)floor(currentTemperature + 0.5);
   payload[1] = (uint8_t)floor(currentHumidity + 0.5);
-  //payload[2] = (uint8_t)(relayState==true?1:0);
+  payload[2] = (uint8_t)((relayState==true)? 1: 0);
   xbee.send(zbTx);
 
   // after sending a tx request, we expect a status response
@@ -114,8 +131,13 @@ void sendMeasurements() {
     hardwin::flashLed(statusLed, 2, 50);
   }
 #else
+#ifdef T_SENSOR
   Serial.print("Temperature: "); Serial.println(currentTemperature);
+#endif
+#ifdef RH_SENSOR
   Serial.print("Humidity: "); Serial.println(currentHumidity);
+#endif
+  Serial.print("Relay: "); Serial.println(relayState==true? "ON": "OFF");
 #endif
 }
 
@@ -124,15 +146,25 @@ void setup()
   pinMode(statusLed, OUTPUT);
   pinMode(relay, OUTPUT);
 
-  //hardwin::EEPROM_write(temperatureThresholdAddr, 35.0);
-  //hardwin::EEPROM_write(humidityThresholdAddr, 85.0);
-  
+  // This is an example of writing values to EEPROM
+  // hardwin::EEPROM_write(temperatureThresholdAddr, 35.0);
+  // hardwin::EEPROM_write(humidityThresholdAddr, 85.0);
+  // hardwin::EEPROM_write(thermostatHysteresis, 3.0);
+
+#ifndef DEBUG  
   hardwin::EEPROM_read(temperatureThresholdAddr, temperatureThreshold,
     static_cast<float>(20.0), static_cast<float>(60.0), static_cast<float>(35.0));
   hardwin::EEPROM_read(humidityThresholdAddr, humidityThreshold,
     static_cast<float>(30.0), static_cast<float>(100.0), static_cast<float>(85.0));
+  hardwin::EEPROM_read(thermostatHysteresisAddr, thermostatHysteresis,
+    static_cast<float>(0.0), static_cast<float>(30.0), static_cast<float>(3.0));
+#else
+  temperatureThreshold = 25;
+  humidityThreshold = 30;
+  thermostatHysteresis = 1;
+#endif
 
-#ifndef DEBUG
+#ifndef NO_XBEE
   xbee.begin(9600);
 #else
   Serial.begin(9600);
@@ -147,11 +179,11 @@ void loop()
     currentTemperature = readTemperature(5, 500);
     currentHumidity = readHumidity(2, 500);
 
-    // TODO: take humidity into account as well
+    // TODO: take humidity into account as well?
     if (currentTemperature > temperatureThreshold) {
       switchRelay(true);
     }
-    else {
+    else if (currentTemperature < temperatureThreshold - thermostatHysteresis) {
       switchRelay(false);
     }
 
@@ -160,7 +192,7 @@ void loop()
     lastUpdate = millis();
   }
 
-  // Blink status LED every 7 seconds if the relay is ON
+  // Blink status LED every 7 seconds when the relay is ON
   if (!(millis() % 7000) && relayState) {
     hardwin::flashLed(statusLed, 1, 50);
   }

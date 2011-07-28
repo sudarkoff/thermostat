@@ -165,9 +165,13 @@ class Logger:
         humidity = ord(data['rf_data'][1])
         fan = False
         logging.info(u"%s -- T:%sC, RH:%s%%RH, Fan:%s" % (sensor_name, temperature, humidity, fan))
-        self.server.request('POST', '/datastream/%s_%s' % (sensor_name, temperature_name), {'value':"%s" % temperature})
-        self.server.request('POST', '/datastream/%s_%s' % (sensor_name, humidity_name), {'value':"%s" % humidity})
-        self.server.request('POST', '/datastream/%s_%s' % (sensor_name, fan_name), {'value':"%s" % fan})
+        try:
+            self.server.request('POST', '/datastream/%s_%s' % (sensor_name, temperature_name), {'value':"%s" % temperature})
+            self.server.request('POST', '/datastream/%s_%s' % (sensor_name, humidity_name), {'value':"%s" % humidity})
+            self.server.request('POST', '/datastream/%s_%s' % (sensor_name, fan_name), {'value':"%s" % fan})
+        except Exception, msg:
+            logging.error(msg)
+            self.terminate()
 
     def run(self):
         logging.info("Initializing serial port '%s'." % self.serport)
@@ -182,6 +186,7 @@ class Logger:
         logging.info("Terminating the script.")
         self.xbee.halt()
         self.serial_port.close()
+        sys.exit(-1)
 
 
 if __name__ == "__main__":
@@ -193,9 +198,4 @@ if __name__ == "__main__":
 
     # TODO: Make serport a command-line parameter
     logger = Logger(serport='/dev/tty.usbserial-A40081sf')
-    try:
-        logger.run()
-    except Exception, msg:
-        logger.error("ERROR: %s" % msg)
-        logger.terminate()
-        sys.exit(-1)
+    logger.run()
