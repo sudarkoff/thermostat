@@ -183,10 +183,10 @@ class Logger:
             time.sleep(0.01)
 
     def terminate(self):
-        logging.info("Halting XBee radio.")
-        self.xbee.halt()
-        logging.info("Closing serial port.")
-        self.serial_port.close()
+        #logging.info("Halting XBee radio.")
+        #self.xbee.halt()
+        #logging.info("Closing serial port.")
+        #self.serial_port.close()
         logging.info("Terminating the script.")
         sys.exit(1)
 
