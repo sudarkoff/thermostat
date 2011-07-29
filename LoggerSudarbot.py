@@ -176,17 +176,19 @@ class Logger:
     def run(self):
         logging.info("Initializing serial port '%s'." % self.serport)
         self.serial_port = serial.Serial(self.serport, 9600)
-        logging.info("Initializing ZigBee radio.")
+        logging.info("Initializing XBee radio.")
         self.xbee = ZigBee(self.serial_port, callback=self.post_data, escaped=True)
 
         while True:
             time.sleep(0.01)
 
     def terminate(self):
-        logging.info("Terminating the script.")
+        logging.info("Halting XBee radio.")
         self.xbee.halt()
+        logging.info("Closing serial port.")
         self.serial_port.close()
-        sys.exit(-1)
+        logging.info("Terminating the script.")
+        sys.exit(1)
 
 
 if __name__ == "__main__":
