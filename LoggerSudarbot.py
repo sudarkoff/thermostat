@@ -148,7 +148,6 @@ class Logger:
         server_info = ServerInfo(server_uri, server_port)
         logging.info("Remote server: %s" % server_info)
         self.server = SudarbotServer(server_info)
-        atexit.register(self.terminate)
 
     def post_data(self, data):
         logging.info("Data received from the thermostat.")
@@ -171,7 +170,6 @@ class Logger:
             self.server.request('POST', '/datastream/%s_%s' % (sensor_name, fan_name), {'value':"%s" % fan})
         except Exception, msg:
             logging.error(msg)
-            self.terminate()
 
     def run(self):
         logging.info("Initializing serial port '%s'." % self.serport)
@@ -181,14 +179,6 @@ class Logger:
 
         while True:
             time.sleep(0.01)
-
-    def terminate(self):
-        #logging.info("Halting XBee radio.")
-        #self.xbee.halt()
-        #logging.info("Closing serial port.")
-        #self.serial_port.close()
-        logging.info("Terminating the script.")
-        sys.exit(1)
 
 
 if __name__ == "__main__":
