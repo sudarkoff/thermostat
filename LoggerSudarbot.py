@@ -162,7 +162,7 @@ class Logger:
         # TODO: Need to come up with a more abstract protocol
         temperature = ord(data['rf_data'][0])
         humidity = ord(data['rf_data'][1])
-        fan = False
+        fan = data['rf_data'][2]
         logging.info(u"%s -- T:%sC, RH:%s%%RH, Fan:%s" % (sensor_name, temperature, humidity, fan))
         try:
             self.server.request('POST', '/datastream/%s_%s' % (sensor_name, temperature_name), {'value':"%s" % temperature})
