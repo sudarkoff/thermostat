@@ -2,33 +2,38 @@
 # -*- coding: utf-8 -*-
 
 """
-Continuously read the serial port and process IO data received from a remote XBee.
+Listen to incoming traffic and print out the received data.
 """
 
-import time
-import serial
+import sys, time, serial, logging
 from xbee import ZigBee
-serial_port = serial.Serial('/dev/tty.usbserial-A40081sf', 9600)
-import logging
 
-logger = logging.getLogger('XBeeThermostatLogger')
-hdlr = logging.FileHandler('thermostat.log')
+# Setup logger
+logger = logging.getLogger('XBeeLogger')
 formatter = logging.Formatter('%(asctime)s %(levelname)s %(message)s')
-hdlr.setFormatter(formatter)
-logger.addHandler(hdlr) 
-logger.setLevel(logging.INFO)
+console_handler = logging.StreamHandler()
+console_handler.setFormatter(formatter)
+logger.addHandler(console_handler) 
+logger.setLevel(logging.DEBUG)
 
-def log_to_file(data):
-    logger.info(u"T:%s°C, RH:%s%%RH" % ( ord(data['rf_data'][0]), ord(data['rf_data'][1]) ))
+def log(data):
+    logger.info(u"%s" % hex(data))
 
-xbee = ZigBee(serial_port, callback=log_to_file, escaped=True)
+port = '/dev/tty.usbserial-A40081sf'
+if len(sys.argv) > 1:
+    port = sys.argv[1]
+
+logger.debug("Initializing serial port %s" % port)
+serial_port = serial.Serial(port, 9600)
+logger.debug("Initializing XBee on port %s" % port)
+xbee = ZigBee(serial_port, callback=log, escaped=True)
+logger.debug("Listening to incoming traffic...")
 
 while True:
     try:
         time.sleep(0.01)
     except KeyboardInterrupt:
+        xbee.halt()
+        serial_port.close()
         logger.debug("Logger terminated.")
         break
-
-xbee.halt()
-serial_port.close()

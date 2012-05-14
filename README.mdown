@@ -1,0 +1,3 @@
+# Thermostat
+
+Arduino-compatible board that can read up to three sensors and control one load with the relay. Board can also be optionally connected to XBee radio to transmit the sensor readings and receive remote commands.
