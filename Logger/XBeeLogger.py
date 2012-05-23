@@ -17,7 +17,7 @@ logger.addHandler(console_handler)
 logger.setLevel(logging.DEBUG)
 
 def log(data):
-    logger.info(u"%s" % hex(data))
+    logger.info(u"%s" % data)
 
 port = '/dev/tty.usbserial-A40081sf'
 if len(sys.argv) > 1:
