@@ -168,12 +168,14 @@ void setup()
   humidityThreshold = 30;
   thermostatHysteresis = 1;
 #else
+#if 0
   hardwin::EEPROM_read(temperatureThresholdAddr, temperatureThreshold,
     static_cast<float>(20.0), static_cast<float>(60.0), static_cast<float>(35.0));
   hardwin::EEPROM_read(humidityThresholdAddr, humidityThreshold,
     static_cast<float>(30.0), static_cast<float>(100.0), static_cast<float>(85.0));
   hardwin::EEPROM_read(thermostatHysteresisAddr, thermostatHysteresis,
     static_cast<float>(0.0), static_cast<float>(30.0), static_cast<float>(3.0));
+#endif
 #endif
 
 #ifdef XBEE
